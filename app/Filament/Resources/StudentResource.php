@@ -19,6 +19,7 @@ class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'Academic Management';
 
     public static function form(Form $form): Form
     {
@@ -30,7 +31,17 @@ class StudentResource extends Resource
                         Forms\Components\TextInput::make('full_name')
                             ->required()
                             ->maxLength(255),
-                        
+
+                        Forms\Components\Select::make('class_level')
+                            ->label('Education Level')
+                            ->options([
+                                'Primary' => 'Primary',
+                                'Junior Secondary' => 'Junior Secondary',
+                                'Senior Secondary' => 'Senior Secondary',
+                            ])
+                            ->required()
+                            ->native(false),
+
                         Forms\Components\TextInput::make('admission_number')
                             ->label('Admission No.')
                             ->required()
@@ -40,7 +51,8 @@ class StudentResource extends Resource
                             ->label('Assign to Class/Arm')
                             ->options(SchoolClass::all()->pluck('full_name', 'id'))
                             ->required()
-                            ->searchable(),
+                            ->searchable()
+                            ->preload(),
 
                         Forms\Components\TextInput::make('parent_email')
                             ->email()
@@ -51,9 +63,13 @@ class StudentResource extends Resource
                             ->options([
                                 'Male' => 'Male',
                                 'Female' => 'Female',
-                            ])->required(),
+                            ])
+                            ->required()
+                            ->native(false),
 
-                        Forms\Components\DatePicker::make('date_of_birth'),
+                        Forms\Components\DatePicker::make('date_of_birth')
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
 
                         Forms\Components\Select::make('status')
                             ->options([
@@ -83,11 +99,11 @@ class StudentResource extends Resource
                                 Infolists\Components\TextEntry::make('admission_number')
                                     ->label('Admission No.')
                                     ->copyable(),
-                                Infolists\Components\TextEntry::make('schoolClass.name')
-                                    ->label('Current Class')
+                                Infolists\Components\TextEntry::make('class_level')
+                                    ->label('Level'),
+                                Infolists\Components\TextEntry::make('schoolClass.full_name')
+                                    ->label('Current Class & Arm')
                                     ->placeholder('Not Assigned'),
-                                Infolists\Components\TextEntry::make('schoolClass.arm')
-                                    ->label('Arm'),
                                 Infolists\Components\TextEntry::make('status')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
@@ -146,7 +162,7 @@ class StudentResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(), // This enables the Profile view
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -164,19 +180,16 @@ class StudentResource extends Resource
                         ])
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data): void {
                             $activeStudents = $records->where('status', 'Active');
-
                             foreach ($activeStudents as $record) {
                                 $record->update(['school_class_id' => $data['target_class_id']]);
                             }
-
                             Notification::make()
                                 ->title('Promotion Successful')
-                                ->body($activeStudents->count() . ' active students promoted.')
+                                ->body($activeStudents->count() . ' students promoted.')
                                 ->success()
                                 ->send();
                         })
                         ->deselectRecordsAfterCompletion(),
-
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
@@ -191,28 +204,4 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
-    protected function getHeaderActions(): array
-{
-    return [
-        \Filament\Actions\Action::make('downloadResult')
-            ->label('Print Result')
-            ->icon('heroicon-o-printer')
-            ->color('info')
-            ->form([
-                \Filament\Forms\Components\Select::make('term')
-                    ->options([
-                        'First Term' => 'First Term',
-                        'Second Term' => 'Second Term',
-                        'Third Term' => 'Third Term',
-                    ])
-                    ->required(),
-            ])
-            ->action(function (array $data, \App\Models\Student $record) {
-                return redirect()->route('student.result', [
-                    'student' => $record->id,
-                    'term' => $data['term']
-                ]);
-            }),
-    ];
-}
 }

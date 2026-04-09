@@ -1,27 +1,26 @@
 <?php
 
-use App\Http\Controllers\HomeController;
-use Illuminate\Support\Facades\Route;
+namespace App\Http\Controllers; // Ensure this isn't here in web.php, only in the Controller
+
+use App\Http\Controllers\HomeController; // THIS MUST BE HERE
 use App\Http\Controllers\ResultCheckerController;
-
-// Page where parents type the Admission Number
-Route::get('/check-results', [ResultCheckerController::class, 'index'])->name('results.index');
-
-// Page that displays the specific student's grades
-Route::post('/view-result', [ResultCheckerController::class, 'show'])->name('results.show');
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
-
-// The landing page for Unique Group of Schools
+use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Filament routes are automatically handled by the package, 
-// but your custom home page now links to /admin.
+// Result Checker Routes for Parents
+Route::get('/check-results', [ResultCheckerController::class, 'index'])->name('results.index');
+Route::post('/view-result', [ResultCheckerController::class, 'show'])->name('results.show');
+
+// Result Checker Routes for Parents (Combined & Unique)
+Route::get('/check-results', [ResultCheckerController::class, 'index'])->name('results.index');
+Route::post('/view-result', [ResultCheckerController::class, 'show'])->name('results.show');
+
+// 2. PROTECTED ROUTES (Requires Login)
+Route::middleware(['auth'])->group(function () {
+    // Custom protected routes would go here
+});
+
+/*
+| Note: Filament Admin routes (/admin) are handled automatically 
+| by the Filament package.
+*/

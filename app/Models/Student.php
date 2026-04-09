@@ -17,10 +17,10 @@ class Student extends Model
         'admission_number', 
         'school_class_id', 
         'gender', 
-        'status',
+        'class_level', 
         'date_of_birth',
         'parent_email',
-        'status'
+        'status', // Removed the duplicate 'status' entry here
     ];
 
     /**
@@ -46,13 +46,18 @@ class Student extends Model
     {
         $user = auth()->user();
 
+        // Safety check: If no user is logged in (e.g., Public Result Checker),
+        // we don't apply the teacher filter.
+        if (!$user) {
+            return $query;
+        }
+
         // Data Analyst/Super Admin sees all students
-        if ($user->hasRole('super_admin')) {
+        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
             return $query;
         }
 
         // Teachers only see students assigned to their class
-        // This assumes your User model has a class_id or similar link
         return $query->where('school_class_id', $user->school_class_id);
     }
 }
