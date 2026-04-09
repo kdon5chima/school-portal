@@ -19,41 +19,42 @@ class SubjectAssignmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+  public static function form(Form $form): Form
 {
     return $form
         ->schema([
             Forms\Components\Select::make('user_id')
                 ->label('Teacher')
-                ->options(\App\Models\User::where('role', 'teacher')->pluck('name', 'id'))
+                ->relationship('teacher', 'name')
                 ->required(),
-            Forms\Components\Select::make('subject_name')
-                ->options(\App\Models\Subject::all()->pluck('name', 'name'))
+
+            Forms\Components\Select::make('subject_id')
+                ->label('Subject')
+                ->relationship('subject', 'name') // Now links to subjects table
                 ->required(),
-            Forms\Components\Select::make('class_name')
-                ->options(\App\Models\SchoolClass::all()->pluck('name', 'name'))
-                ->required(),
+
+            Forms\Components\Select::make('school_class_id')
+                ->label('Class/Arm (Optional)')
+                ->placeholder('Assign to ALL Classes')
+                ->relationship('schoolClass', 'full_name') // Now links to school_classes table
+                ->nullable()
+                ->helperText('Leave empty if this teacher handles this subject for the whole school/level.'),
         ]);
 }
 
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                //
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
+public static function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            Tables\Columns\TextColumn::make('teacher.name')->label('Teacher'),
+            Tables\Columns\TextColumn::make('subject.name')->label('Subject'),
+            Tables\Columns\TextColumn::make('schoolClass.full_name')
+                ->label('Class')
+                ->placeholder('Global (All Classes)') // This is the "All Classes" indicator
+                ->badge()
+                ->color(fn ($state) => $state ? 'gray' : 'success'),
+        ]);
+}
 
     public static function getRelations(): array
     {
