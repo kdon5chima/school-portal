@@ -20,7 +20,7 @@ class Student extends Model
         'class_level', 
         'date_of_birth',
         'parent_email',
-        'status', // Removed the duplicate 'status' entry here
+        'status',
     ];
 
     /**
@@ -41,23 +41,30 @@ class Student extends Model
 
     /**
      * Security Scope: Filters students based on User Role.
+     * This ensures Teachers only see their assigned students.
      */
     public function scopeForTeacher(Builder $query): Builder
     {
         $user = auth()->user();
 
-        // Safety check: If no user is logged in (e.g., Public Result Checker),
-        // we don't apply the teacher filter.
+        // 1. If not logged in (Public Result Checker), show nothing or all 
+        // depending on your ResultController logic.
         if (!$user) {
             return $query;
         }
 
-        // Data Analyst/Super Admin sees all students
+        // 2. Super Admin / Data Analyst sees everything
         if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
             return $query;
         }
 
-        // Teachers only see students assigned to their class
-        return $query->where('school_class_id', $user->school_class_id);
+        // 3. Teachers: Only see students in their assigned class
+        if (method_exists($user, 'hasRole') && $user->hasRole('teacher')) {
+            return $query->where('school_class_id', $user->school_class_id);
+        }
+
+        // 4. Default: Fallback to showing nothing if role is unrecognized
+        // This is safer for school data privacy.
+        return $query;
     }
 }
