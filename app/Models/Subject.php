@@ -6,5 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Subject extends Model
 {
-    protected $fillable = ['name', 'code'];
+    // This allows Filament to actually save the name to the database
+    protected $fillable = [
+        'name',
+        'code', // Add this if you have a subject code column
+    ];
 }
