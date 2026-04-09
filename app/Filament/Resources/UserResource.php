@@ -45,24 +45,47 @@ class UserResource extends Resource
 }
 
     public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                //
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
+{
+    return $table
+        ->columns([
+            Tables\Columns\TextColumn::make('name')
+                ->label('Full Name')
+                ->searchable()
+                ->sortable(),
 
+            Tables\Columns\TextColumn::make('email')
+                ->label('Email Address')
+                ->searchable(),
+
+            // This shows the Shield Roles as colorful badges
+            Tables\Columns\TextColumn::make('roles.name')
+                ->label('Designation/Role')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'super_admin' => 'danger',
+                    'admin' => 'warning',
+                    'teacher' => 'success',
+                    'principal' => 'info',
+                    default => 'gray',
+                }),
+
+            Tables\Columns\TextColumn::make('created_at')
+                ->dateTime()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+        ])
+        ->filters([
+            //
+        ])
+        ->actions([
+            Tables\Actions\EditAction::make(),
+        ])
+        ->bulkActions([
+            Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]),
+        ]);
+}
     public static function getRelations(): array
     {
         return [
