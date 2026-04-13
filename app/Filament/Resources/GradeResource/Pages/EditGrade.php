@@ -16,4 +16,21 @@ class EditGrade extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    /**
+     * Redirect back to the Grade list after saving changes.
+     * This improves the workflow for teachers managing multiple students.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * Success message to confirm that the dynamic grading logic was applied.
+     */
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return 'Grade updated and re-calculated successfully';
+    }
 }

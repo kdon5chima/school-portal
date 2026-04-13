@@ -22,7 +22,15 @@ class ListGrades extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            // This adds a special button next to the standard "New" button
+        Actions\Action::make('bulkEntry')
+            ->label('Bulk Grade Entry')
+            ->icon('heroicon-o-plus-circle')
+            ->color('success')
+            ->url(fn (): string => $this->getResource()::getUrl('bulk')),
+            
+        Actions\CreateAction::make(),
+            
             
             // 1. EXPORT TO EXCEL BUTTON
             Actions\Action::make('export')

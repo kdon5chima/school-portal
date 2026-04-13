@@ -27,6 +27,11 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            // ... other existing settings ...
+        ->sidebarCollapsibleOnDesktop() // This adds the toggle arrow to the sidebar
+        ->sidebarWidth('20rem')         // Optional: Set a specific width when expanded
+        ->collapsedSidebarWidth('90px') // Optional: Set width when shrunk
+        ->maxContentWidth('full')     // Recommended: Makes all pages utilize the full screen
             ->login()
             ->colors([
                 'primary' => Color::Amber,

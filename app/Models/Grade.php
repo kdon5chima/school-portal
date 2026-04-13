@@ -11,80 +11,76 @@ class Grade extends Model
         'student_name', 
         'admission_number', 
         'class_level', 
+        'academic_year', // Added to ensure year-to-year tracking
         'term', 
         'subject', 
         'ca_score', 
         'exam_score', 
         'total_score', 
         'grade_letter', 
-        'teacher_comment'
+        
     ];
-public function student()
-{
-    return $this->belongsTo(Student::class, 'admission_number', 'admission_number');
-}
+
     /**
-     * Dashboard Logic: Filters data based on the logged-in user's role.
+     * Relationship to the Student
      */
-    protected static function booted()
-{
-    static::addGlobalScope('teacher_access', function (Builder $builder) {
-        if (auth()->check() && auth()->user()->role === 'teacher') {
-            // Get the list of subjects/classes assigned to this teacher
-            $assignments = \App\Models\SubjectAssignment::where('user_id', auth()->id())
-                ->get(['subject_name', 'class_name']);
-
-            $builder->where(function ($query) use ($assignments) {
-                foreach ($assignments as $assignment) {
-                    $query->orWhere(function ($q) use ($assignment) {
-                        $q->where('subject', $assignment->subject_name)
-                          ->where('class_level', $assignment->class_name);
-                    });
-                }
-            });
-        }
-    });
-}
-    public function scopeForTeacher(Builder $query): Builder
+    public function student()
     {
-        $user = auth()->user();
-
-        // 1. If Principal (Super Admin), show EVERYTHING
-        if ($user->hasRole('super_admin')) {
-            return $query;
-        }
-
-        // 2. If Subject Teacher, only show their specific assigned subject
-        if ($user->hasRole('subject_teacher')) {
-            return $query->where('subject', $user->assigned_subject);
-        }
-
-        // 3. If Class Teacher, only show their specific class (e.g., JSS1)
-        if ($user->hasRole('class_teacher')) {
-            return $query->where('class_level', $user->assigned_class);
-        }
-
-        return $query;
+        return $this->belongsTo(Student::class, 'admission_number', 'admission_number');
     }
 
     /**
-     * Auto-Calculation: Handles grading logic whenever a record is created or updated.
+     * Global Scope: Teacher Privacy & Access
+     * Automatically filters results so teachers only see the subjects and 
+     * classes assigned to them in the SubjectAssignment table.
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope('teacher_access', function (Builder $builder) {
+            if (auth()->check() && auth()->user()->role === 'teacher') {
+                
+                $assignments = \App\Models\SubjectAssignment::where('user_id', auth()->id())
+                    ->with(['subject', 'schoolClass']) 
+                    ->get();
+
+                $builder->where(function ($query) use ($assignments) {
+                    foreach ($assignments as $assignment) {
+                        $subjectName = $assignment->subject?->name;
+                        $className = $assignment->schoolClass?->name;
+
+                        if ($subjectName && $className) {
+                            $query->orWhere(function ($q) use ($subjectName, $className) {
+                                $q->where('subject', $subjectName)
+                                  ->where('class_level', $className);
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Flexible Logic Boot:
+     * 1. Calculates Total Score automatically.
+     * 2. Dynamically fetches Grade Letter from the GradeScale table.
      */
     protected static function boot()
     {
         parent::boot();
 
-        // This runs for both NEW records and UPDATED records
         static::saving(function ($grade) {
-            $grade->total_score = $grade->ca_score + $grade->exam_score;
+            // 1. Calculate the Total
+            $grade->total_score = ($grade->ca_score ?? 0) + ($grade->exam_score ?? 0);
             
-            if ($grade->total_score >= 75) $grade->grade_letter = 'A1';
-            elseif ($grade->total_score >= 70) $grade->grade_letter = 'B2';
-            elseif ($grade->total_score >= 65) $grade->grade_letter = 'B3';
-            elseif ($grade->total_score >= 60) $grade->grade_letter = 'C4';
-            elseif ($grade->total_score >= 55) $grade->grade_letter = 'C5';
-            elseif ($grade->total_score >= 50) $grade->grade_letter = 'C6';
-            else $grade->grade_letter = 'F9';
+            // 2. Flexible Grading Logic
+            // We query the GradeScale table to see where this total fits.
+            // This allows you to change grading rules in the UI without touching code.
+            $scale = \App\Models\GradeScale::where('min_score', '<=', $grade->total_score)
+                ->where('max_score', '>=', $grade->total_score)
+                ->first();
+
+            $grade->grade_letter = $scale ? $scale->grade_letter : 'N/A';
         });
     }
 }

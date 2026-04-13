@@ -12,7 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use App\Models\AcademicYear;
+use Filament\Forms\Components\Select;
 class AcademicSettingResource extends Resource
 {
     protected static ?string $model = AcademicSetting::class;
@@ -21,7 +22,23 @@ class AcademicSettingResource extends Resource
 public static function form(Form $form): Form
 {
     return $form
+    
         ->schema([
+            Select::make('academic_year')
+    ->label('Select Academic Session')
+    ->options(AcademicYear::pluck('name', 'name')) 
+    ->searchable()
+    ->preload()
+    ->required()
+    ->hint('Add new years in the Academic Year menu if not listed.')
+    ->createOptionForm([
+        \Filament\Forms\Components\TextInput::make('name')
+            ->required()
+            ->placeholder('e.g., 2025/2026'),
+    ])
+    ->createOptionUsing(function (array $data) {
+        return AcademicYear::create($data)->name;
+    }),
             Forms\Components\Section::make('Global Academic Session')
                 ->schema([
                     Forms\Components\TextInput::make('academic_year')

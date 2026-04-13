@@ -9,14 +9,13 @@ class SubjectAssignment extends Model
 {
     protected $fillable = [
         'user_id',
-        'subject_id', // Stores single ID (Specialist) or Array (Form Teacher)
+        'subject_id', 
         'school_class_id',
         'academic_session_id',
     ];
 
     /**
      * The attributes that should be cast.
-     * This handles the JSON conversion for the CheckboxList automatically.
      */
     protected $casts = [
         'subject_id' => 'array',
@@ -32,12 +31,13 @@ class SubjectAssignment extends Model
 
     /**
      * Link to the Subject
-     * Note: This works when subject_id contains a single value.
+     * * FIXED: We use 'subject_id' as the foreign key. 
+     * The second parameter should be the local column (subject_id).
+     * The third parameter is the ID on the Subjects table (usually 'id').
      */
     public function subject(): BelongsTo
     {
-        // Fixed: Use 'subject_id' as the foreign key, not 'subject_name'
-        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
+        return $this->belongsTo(Subject::class, 'subject_id', 'id');
     }
 
     /**
