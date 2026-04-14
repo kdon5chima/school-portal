@@ -9,12 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+   public function up(): void
 {
     Schema::create('school_classes', function (Blueprint $table) {
         $table->id();
-        $table->string('name')->unique(); // e.g., "Primary 1" or "SS 1"
-        $table->string('section')->nullable(); // e.g., "Junior", "Senior", "Nursery"
+        $table->string('name'); // e.g., Year 1, Year 5 
+        $table->string('arm')->nullable(); // e.g., Gold, Mars 
         $table->timestamps();
     });
 }

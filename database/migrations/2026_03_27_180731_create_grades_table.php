@@ -10,22 +10,25 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('grades', function (Blueprint $table) {
-            $table->id();
-            $table->string('student_name');
-            $table->string('admission_number')->unique();
-            $table->string('class_level'); // e.g., JSS1, SS3
-            $table->string('term');        // e.g., 1st Term, 2nd Term
-            $table->string('subject');     // e.g., Mathematics, English
-            $table->integer('ca_score');   // Continuous Assessment (usually /40)
-            $table->integer('exam_score'); // Exam Score (usually /60)
-            $table->integer('total_score'); // Calculated (CA + Exam)
-            $table->string('grade_letter'); // A, B, C, F
-            $table->text('teacher_comment')->nullable();
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('grades', function (Blueprint $table) {
+        $table->id();
+        $table->string('admission_number');
+        $table->string('student_name');
+        $table->string('subject');
+        $table->string('class_level');
+        $table->string('term');
+        $table->string('academic_year'); // <--- Ensure this is here!
+        $table->float('ca_score')->default(0);
+        $table->float('exam_score')->default(0);
+        $table->float('total_score')->default(0);
+        // ... any other fields ...
+        $table->timestamps();
+
+        // ADD THE UNIQUE CONSTRAINT HERE
+        $table->unique(['admission_number', 'subject', 'term', 'academic_year'], 'grades_composite_unique');
+    });
+}
 
     /**
      * Reverse the migrations.

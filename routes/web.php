@@ -5,6 +5,11 @@ namespace App\Http\Controllers; // Ensure this isn't here in web.php, only in th
 use App\Http\Controllers\HomeController; // THIS MUST BE HERE
 use App\Http\Controllers\ResultCheckerController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReportCardController;
+
+// Using a distinct route name to avoid conflict
+Route::get('/generate-report/{id}', [ReportCardController::class, 'generate'])->name('report.generate');
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // Result Checker Routes for Parents

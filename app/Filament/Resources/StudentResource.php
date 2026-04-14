@@ -14,7 +14,7 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
-
+use Filament\Tables\Actions\Action;
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
@@ -127,6 +127,11 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
+                Action::make('report_card')
+    ->label('Report Card')
+    ->icon('heroicon-o-document-chart-bar')
+    ->url(fn (Student $record): string => route('report.generate', $record))
+    ->openUrlInNewTab(),
                 Tables\Columns\TextColumn::make('admission_number')
                     ->sortable()
                     ->searchable(),

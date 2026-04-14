@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn; // Crucial import
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\AcademicYear;
@@ -60,24 +61,34 @@ public static function form(Form $form): Form
 }
     
 
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                //
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
+
+
+public static function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('academic_year')
+                ->label('Current Session')
+                ->sortable()
+                ->badge(),
+
+            TextColumn::make('current_term')
+                ->label('Term')
+                ->sortable(),
+
+            TextColumn::make('total_school_days')
+                ->label('Expected Attendance')
+                ->numeric(),
+
+            TextColumn::make('updated_at')
+                ->label('Last Updated')
+                ->dateTime()
+                ->color('gray'),
+        ])
+        ->actions([
+            Tables\Actions\EditAction::make(),
+        ]);
+}
 
     public static function getRelations(): array
     {

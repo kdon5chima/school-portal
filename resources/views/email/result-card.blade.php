@@ -14,6 +14,7 @@
     </style>
 </head>
 <body>
+    <p><strong>Class:</strong> {{ $student->class_level }} {{ $student->schoolClass->arm ?? '' }}</p>
     <div class="container">
         <div class="header">
             <h1>UNIQUE GROUP OF SCHOOLS</h1>

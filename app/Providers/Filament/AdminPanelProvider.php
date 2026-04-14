@@ -15,9 +15,9 @@ use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -27,15 +27,27 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            // ... other existing settings ...
-        ->sidebarCollapsibleOnDesktop() // This adds the toggle arrow to the sidebar
-        ->sidebarWidth('20rem')         // Optional: Set a specific width when expanded
-        ->collapsedSidebarWidth('90px') // Optional: Set width when shrunk
-        ->maxContentWidth('full')     // Recommended: Makes all pages utilize the full screen
             ->login()
+            
+            /** * UI & NAVIGATION SETTINGS
+             * Optimized for data re-capture with the permanent icon rail
+             */
+            ->sidebarCollapsibleOnDesktop() 
+            ->sidebarWidth('18rem')
+            ->collapsedSidebarWidth('4.5rem') // The width of the icon rail
+            ->maxContentWidth('full') 
+            ->spa() // The progress bar loader you requested
+            ->unsavedChangesAlerts() 
+            
+            /** * BRANDING & COLORS
+             */
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->favicon(asset('favicon.ico'))
+            
+            /** * DISCOVERY & RESOURCES
+             */
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -46,6 +58,9 @@ class AdminPanelProvider extends PanelProvider
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
             ])
+            
+            /** * MIDDLEWARE & SECURITY
+             */
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

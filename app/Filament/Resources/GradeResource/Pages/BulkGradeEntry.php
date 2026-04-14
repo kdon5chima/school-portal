@@ -13,10 +13,11 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\ViewField;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 class BulkGradeEntry extends Page implements HasForms
 {
@@ -26,6 +27,23 @@ class BulkGradeEntry extends Page implements HasForms
     protected static string $view = 'filament.resources.grade-resource.pages.bulk-grade-entry';
 
     public ?array $data = [];
+
+    /**
+     * This is the "Nuclear Option" CSS. 
+     * It physically hides the default Filament footer buttons on this page.
+     */
+    public function getHeaderHtml(): ?HtmlString
+    {
+        return new HtmlString("
+            <style>
+                .fi-ac-footer-actions, 
+                .fi-form-actions,
+                footer.fi-form-actions { 
+                    display: none !important; 
+                }
+            </style>
+        ");
+    }
 
     public function mount(): void
     {
@@ -37,143 +55,137 @@ class BulkGradeEntry extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Step 1: Select Context')
+                    ->description('Select the class and subject to load the student broadsheet.')
                     ->schema([
                         Select::make('class_level')
                             ->label('Class')
                             ->options(SchoolClass::pluck('name', 'name'))
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(fn() => $this->loadStudents()),
+                            ->required(),
                         
                         Select::make('subject')
                             ->label('Subject')
                             ->options(Subject::pluck('name', 'name'))
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(fn() => $this->loadStudents()),
-                    ])->columns(2),
+                            ->required(),
+                    ])
+                    ->columns(2)
+                    ->footerActions([
+                        FormAction::make('loadList')
+                            ->label('Load Student List')
+                            ->color('info')
+                            ->icon('heroicon-m-arrow-path')
+                            ->extraAttributes(['type' => 'button']) // Ensures it doesn't trigger a form submit
+                            ->action(fn() => $this->loadStudents()),
+                    ]),
 
-                Section::make('Step 2: Enter Scores')
-                    ->visible(fn($get) => $get('class_level') && $get('subject'))
+                Section::make('Step 2: Score Entry Broadsheet')
+                    ->visible(fn() => !empty($this->data['grades_list']))
                     ->schema([
-                        Repeater::make('grades_list')
-                            ->label('Class Members')
-                            ->schema([
-                                TextInput::make('admission_number')
-                                    ->label('ID')
-                                    ->readOnly(),
-
-                                TextInput::make('student_name')
-                                    ->label('Student Name')
-                                    ->readOnly(),
-
-                                TextInput::make('ca_score')
-                                    ->label('CA')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(40)
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, $set, $get) => 
-                                        $set('total_score', (float)$state + (float)$get('exam_score'))),
-
-                                TextInput::make('exam_score')
-                                    ->label('Exam')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(60)
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, $set, $get) => 
-                                        $set('total_score', (float)$state + (float)$get('ca_score'))),
-
-                                TextInput::make('total_score')
-                                    ->label('Total')
-                                    ->numeric()
-                                    ->readOnly()
-                                    ->placeholder('0'),
-                            ])
-                            ->addable(false)
-                            ->deletable(false)
-                            ->reorderable(false)
-                            ->columns(5),
+                        ViewField::make('grades_list')
+                            ->view('filament.pages.grade-table')
+                            ->columnSpanFull(),
                     ]),
             ])
             ->statePath('data');
     }
 
+    /**
+     * Logic to remove standard page footer buttons
+     */
+    protected function getFormActions(): array
+    {
+        return [];
+    }
+
+    public function hasFullWidthFormActions(): bool
+    {
+        return false;
+    }
+
     public function loadStudents()
     {
-        // Accessing data from the statePath
-        $class = $this->data['class_level'] ?? null;
-        $subject = $this->data['subject'] ?? null;
+        $this->validate([
+            'data.class_level' => 'required',
+            'data.subject' => 'required',
+        ]);
+
+        $class = $this->data['class_level'];
+        $subject = $this->data['subject'];
         $activeSetting = AcademicSetting::first();
 
-        if ($class && $subject) {
-            $students = Student::where('class_level', $class)
-                ->where('status', 'Active')
-                ->get();
-                
-            $list = [];
-
-            foreach ($students as $student) {
-                // Check if a grade already exists in the grades table
-                $existingGrade = Grade::where([
-                    'admission_number' => $student->admission_number,
-                    'subject' => $subject,
-                    'class_level' => $class,
-                    'term' => $activeSetting?->current_term, 
-                ])->first();
-
-                $list[] = [
-                    'admission_number' => $student->admission_number,
-                    'student_name' => $student->full_name,
-                    'ca_score' => $existingGrade?->ca_score ?? 0,
-                    'exam_score' => $existingGrade?->exam_score ?? 0,
-                    'total_score' => $existingGrade?->total_score ?? 0,
-                ];
-            }
-            $this->data['grades_list'] = $list;
+        // Check active students
+        $students = Student::where('class_level', $class)->where('status', 'Active')->get();
+        
+        if ($students->isEmpty()) {
+            Notification::make()->warning()->title('No active students found in this class.')->send();
+            $this->data['grades_list'] = [];
+            return;
         }
+
+        $list = [];
+        foreach ($students as $student) {
+            // Precise cross-check with academic year and term
+            $existingGrade = Grade::where([
+                'admission_number' => $student->admission_number,
+                'subject'          => $subject,
+                'class_level'      => $class,
+                'term'             => $activeSetting?->current_term, 
+                'academic_year'    => $activeSetting?->academic_year,
+            ])->first();
+
+            $list[md5($student->admission_number)] = [
+                'admission_number' => $student->admission_number,
+                'student_name'     => $student->full_name,
+                'ca_score'         => $existingGrade?->ca_score ?? 0,
+                'exam_score'       => $existingGrade?->exam_score ?? 0,
+            ];
+        }
+
+        $this->data['grades_list'] = $list;
+        Notification::make()->success()->title('Broadsheet Loaded Successfully.')->send();
     }
 
     public function submit()
-{
-    $state = $this->form->getState();
-    $activeSetting = AcademicSetting::first();
+    {
+        $activeSetting = AcademicSetting::first();
 
-    // Safety Check: If no settings exist, stop and notify the user
-    if (!$activeSetting) {
-        Notification::make()
-            ->danger()
-            ->title('Configuration Error')
-            ->body('No Academic Session found. Please set the Current Term in Academic Settings first.')
-            ->send();
-        return;
+        if (empty($this->data['grades_list'])) {
+            return;
+        }
+
+        // --- STRICT VALIDATION ---
+        foreach ($this->data['grades_list'] as $row) {
+            if ((float)($row['ca_score'] ?? 0) > 40) {
+                Notification::make()->danger()->title("Error: CA Score for {$row['student_name']} exceeds 40!")->send();
+                return;
+            }
+            if ((float)($row['exam_score'] ?? 0) > 60) {
+                Notification::make()->danger()->title("Error: Exam Score for {$row['student_name']} exceeds 60!")->send();
+                return;
+            }
+        }
+
+        // --- SAVING ---
+        foreach ($this->data['grades_list'] as $row) {
+            $ca = (float)($row['ca_score'] ?? 0);
+            $exam = (float)($row['exam_score'] ?? 0);
+
+            Grade::updateOrCreate(
+                [
+                    'admission_number' => $row['admission_number'],
+                    'subject'          => $this->data['subject'],
+                    'class_level'      => $this->data['class_level'],
+                    'term'             => $activeSetting->current_term,
+                    'academic_year'    => $activeSetting->academic_year,
+                ],
+                [
+                    'student_name'     => $row['student_name'],
+                    'ca_score'         => $ca,
+                    'exam_score'       => $exam,
+                    'total_score'      => $ca + $exam,
+                ]
+            );
+        }
+
+        Notification::make()->success()->title('Grades Saved Successfully!')->send();
     }
-
-    foreach ($state['grades_list'] as $row) {
-        $total = (float)($row['ca_score'] ?? 0) + (float)($row['exam_score'] ?? 0);
-
-        Grade::updateOrCreate(
-            [
-                'admission_number' => $row['admission_number'],
-                'subject'          => $state['subject'],
-                'class_level'      => $state['class_level'],
-                'term'             => $activeSetting->current_term, // Using current_term from your settings table
-                'academic_year'    => $activeSetting->academic_year,
-            ],
-            [
-                'student_name'     => $row['student_name'],
-                'ca_score'         => $row['ca_score'] ?? 0,
-                'exam_score'       => $row['exam_score'] ?? 0,
-                'total_score'      => $total,
-                // 'grade_letter' will be handled by your Model's saving event
-            ]
-        );
-    }
-
-    Notification::make()
-        ->success()
-        ->title('Grades Saved Successfully!')
-        ->send();
-}
 }

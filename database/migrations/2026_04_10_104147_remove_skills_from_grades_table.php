@@ -12,15 +12,12 @@ return new class extends Migration
    public function up(): void
 {
     Schema::table('grades', function (Blueprint $table) {
-        $table->dropColumn([
-            'days_present', 'days_absent', 'total_school_days', 'punctuality',
-            'attentiveness', 'neatness', 'honesty', 'politeness', 'handwriting',
-            'sports', 'public_speaking', 'self_control', 'relationship_with_peers',
-            'student_image', 'teacher_signature', 'principal_signature'
-        ]);
-        
-        // While we are here, let's add the missing academic_year column!
-        $table->string('academic_year')->after('term')->nullable();
+        /**
+         * We are no longer dropping hardcoded columns here because 
+         * they have been moved to the 'skills' and 'skill_ratings' tables.
+         * * We also removed the 'academic_year' addition because it now lives 
+         * in the primary 'create_grades_table' migration.
+         */
     });
 }
 

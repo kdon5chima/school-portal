@@ -80,7 +80,7 @@ class StudentTermSummaryResource extends Resource
                                     ])->columns(3),
                             ]),
 
-                        // TAB 2: REMARKS & COMMENTS
+                        // TAB 2: REMARKS & COMMENTS (UPDATED)
                         Forms\Components\Tabs\Tab::make('Remarks')
                             ->icon('heroicon-m-chat-bubble-bottom-center-text')
                             ->schema([
@@ -88,10 +88,19 @@ class StudentTermSummaryResource extends Resource
                                     ->schema([
                                         Forms\Components\Section::make('Teacher’s Report')
                                             ->schema([
-                                                Forms\Components\Textarea::make('teacher_comment')
+                                                Forms\Components\Select::make('teacher_comment')
                                                     ->label('Class Teacher’s Comment')
-                                                    ->rows(4)
-                                                    ->placeholder('Enter personalized summary...'),
+                                                    ->options(Remark::where('type', 'Teacher')->pluck('content', 'content'))
+                                                    ->searchable()
+                                                    ->placeholder('Select comment from databank...')
+                                                    ->createOptionForm([
+                                                        Forms\Components\TextInput::make('content')
+                                                            ->label('New Remark')
+                                                            ->required(),
+                                                        Forms\Components\Hidden::make('type')
+                                                            ->default('Teacher'),
+                                                    ])
+                                                    ->hint('Choose a standardized remark or add a new one.'),
                                             ])->columnSpan(1),
 
                                         Forms\Components\Section::make('Principal’s Review')
@@ -100,9 +109,13 @@ class StudentTermSummaryResource extends Resource
                                                     ->label('Principal’s Remark')
                                                     ->options(Remark::where('type', 'Principal')->pluck('content', 'content'))
                                                     ->searchable()
+                                                    ->placeholder('Select remark from databank...')
                                                     ->createOptionForm([
-                                                        Forms\Components\TextInput::make('content')->required(),
-                                                        Forms\Components\Hidden::make('type')->default('Principal'),
+                                                        Forms\Components\TextInput::make('content')
+                                                            ->label('New Remark')
+                                                            ->required(),
+                                                        Forms\Components\Hidden::make('type')
+                                                            ->default('Principal'),
                                                     ]),
                                             ])->columnSpan(1),
                                     ]),
@@ -150,7 +163,7 @@ class StudentTermSummaryResource extends Resource
                                     ->deletable(false),
                             ]),
 
-                        // TAB 4: MEDIA (Consolidated Here)
+                        // TAB 4: MEDIA
                         Forms\Components\Tabs\Tab::make('Uploads')
                             ->icon('heroicon-m-paper-clip')
                             ->schema([
@@ -160,7 +173,7 @@ class StudentTermSummaryResource extends Resource
                                             ->label('Student Passport Photo')
                                             ->image()
                                             ->directory('student-photos')
-                                            ->avatar() // Circular Form UI
+                                            ->avatar() 
                                             ->imageEditor(),
 
                                         Forms\Components\FileUpload::make('teacher_signature')
@@ -184,7 +197,7 @@ class StudentTermSummaryResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('student_image')
                     ->label('Photo')
-                    ->circular(), // Circular Table UI
+                    ->circular(),
                 Tables\Columns\TextColumn::make('admission_number')
                     ->label('ID')
                     ->searchable(),

@@ -35,31 +35,25 @@ class Grade extends Model
      * classes assigned to them in the SubjectAssignment table.
      */
     protected static function booted()
-    {
-        static::addGlobalScope('teacher_access', function (Builder $builder) {
-            if (auth()->check() && auth()->user()->role === 'teacher') {
-                
-                $assignments = \App\Models\SubjectAssignment::where('user_id', auth()->id())
-                    ->with(['subject', 'schoolClass']) 
-                    ->get();
+{
+    static::saving(function ($grade) {
+        // 1. Calculate the total
+        $grade->total_score = (float)$grade->ca_score + (float)$grade->exam_score;
 
-                $builder->where(function ($query) use ($assignments) {
-                    foreach ($assignments as $assignment) {
-                        $subjectName = $assignment->subject?->name;
-                        $className = $assignment->schoolClass?->name;
+        // 2. Lookup the range in your grade_scales table
+        $scale = \App\Models\GradeScale::where('min_score', '<=', $grade->total_score)
+            ->where('max_score', '>=', $grade->total_score)
+            ->first();
 
-                        if ($subjectName && $className) {
-                            $query->orWhere(function ($q) use ($subjectName, $className) {
-                                $q->where('subject', $subjectName)
-                                  ->where('class_level', $className);
-                            });
-                        }
-                    }
-                });
-            }
-        });
-    }
-
+        // 3. Assign the letter and remark automatically
+        if ($scale) {
+            $grade->grade_letter = $scale->grade_letter;
+            $grade->teacher_comment = $scale->remark;
+        } else {
+            $grade->grade_letter = 'N/A';
+        }
+    });
+}
     /**
      * Flexible Logic Boot:
      * 1. Calculates Total Score automatically.
