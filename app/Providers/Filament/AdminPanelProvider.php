@@ -32,6 +32,12 @@ class AdminPanelProvider extends PanelProvider
             /** * UI & NAVIGATION SETTINGS
              * Optimized for data re-capture with the permanent icon rail
              */
+            ->navigationItems([
+    \Filament\Navigation\NavigationItem::make('Go to Student Portal')
+        ->url('/portal', shouldOpenInNewTab: true)
+        ->icon('heroicon-o-arrow-top-right-on-square')
+        ->group('External Links'),
+])
             ->sidebarCollapsibleOnDesktop() 
             ->sidebarWidth('18rem')
             ->collapsedSidebarWidth('4.5rem') // The width of the icon rail
