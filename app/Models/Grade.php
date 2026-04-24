@@ -17,8 +17,7 @@ class Grade extends Model
         'ca_score', 
         'exam_score', 
         'total_score', 
-        'grade_letter', 
-        
+              
     ];
 
     /**

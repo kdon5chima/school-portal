@@ -10,5 +10,6 @@ class SkillRating extends Model
 
 public function skill() {
     return $this->belongsTo(Skill::class);
+    return $this->belongsTo(Skill::class, 'skill_id');
 }
 }

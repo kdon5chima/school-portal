@@ -19,15 +19,12 @@ use Filament\Forms\Components\Section;
 
 class GradeResource extends Resource
 {
-    protected static ?string $model = Grade::class;
+    protected static ?string $model = \App\Models\GradeScore::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
     public static function form(Form $form): Form
     {
-        /** * UPDATED: Using first() instead of where('is_active') 
-         * and mapping to your specific column names.
-         */
         $activeSetting = AcademicSetting::first();
 
         return $form
@@ -66,13 +63,13 @@ class GradeResource extends Resource
 
                         TextInput::make('term')
                             ->label('Current Term')
-                            ->default($activeSetting?->current_term) // Mapped to current_term
+                            ->default($activeSetting?->current_term)
                             ->readOnly()
                             ->required(),
                     ])->columns(2),
 
                 Section::make('Subject Scores')
-                    ->description('Enter scores below. The system will calculate totals and grades on save.')
+                    ->description('Enter scores below. The system will calculate totals on save.')
                     ->schema([
                         Select::make('subject')
                             ->label('Subject')
@@ -104,10 +101,7 @@ class GradeResource extends Resource
                             ->readOnly()
                             ->placeholder('Auto-calculated'),
 
-                        TextInput::make('grade_letter')
-                            ->label('Grade')
-                            ->disabled()
-                            ->placeholder('Calculated on save'),
+                        // --- REMOVED grade_letter TextInput ---
                     ])->columns(2),
             ]);
     }
@@ -121,15 +115,9 @@ class GradeResource extends Resource
                 Tables\Columns\TextColumn::make('class_level')->sortable(),
                 Tables\Columns\TextColumn::make('subject')->sortable(),
                 Tables\Columns\TextColumn::make('total_score')->sortable(),
-                Tables\Columns\TextColumn::make('grade_letter')
-                    ->label('Grade')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'A1' => 'success',
-                        'B2', 'B3' => 'info',
-                        'C4', 'C5', 'C6' => 'warning',
-                        default => 'danger',
-                    }),
+                
+                // --- REMOVED grade_letter TextColumn ---
+                
                 Tables\Columns\TextColumn::make('term'),
                 Tables\Columns\TextColumn::make('academic_year'),
             ])
@@ -154,12 +142,12 @@ class GradeResource extends Resource
     }
 
     public static function getPages(): array
-{
-    return [
-        'index' => Pages\ListGrades::route('/'),
-        'create' => Pages\CreateGrade::route('/create'),
-        'bulk' => Pages\BulkGradeEntry::route('/bulk-entry'), // Add this line
-        'edit' => Pages\EditGrade::route('/{record}/edit'),
-    ];
-}
+    {
+        return [
+            'index' => Pages\ListGrades::route('/'),
+            'create' => Pages\CreateGrade::route('/create'),
+            'bulk' => Pages\BulkGradeEntry::route('/bulk-entry'),
+            'edit' => Pages\EditGrade::route('/{record}/edit'),
+        ];
+    }
 }

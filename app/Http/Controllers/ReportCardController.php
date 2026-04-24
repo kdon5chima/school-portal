@@ -12,31 +12,54 @@ class ReportCardController extends Controller
 {
     public function generate($id)
     {
-        // 1. Get the current school term/year context
-        $setting = AcademicSetting::first();
+        // 1. Get the basics
         $student = Student::findOrFail($id);
+        $setting = AcademicSetting::first();
 
-        // 2. Fetch grades based on the composite unique key we fixed [cite: 8]
+        /**
+         * 2. Fetch Grades with Subject Codes
+         * We use trim() logic implicitly by ensuring the join is clean.
+         * We also ensure the admission_number matches the student exactly.
+         */
         $grades = Grade::where('admission_number', $student->admission_number)
-            ->where('academic_year', $setting->academic_year)
-            ->where('term', $setting->current_term)
+            ->leftJoin('subjects', 'grades.subject', '=', 'subjects.name')
+            ->select([
+                'grades.ca_score', 
+                'grades.exam_score', 
+                'grades.total_score', 
+                'grades.subject', // The name from grades table
+                'subjects.code as subject_code' // The code from subjects table
+            ])
             ->get();
 
-        // 3. Summary Calculations [cite: 10, 11]
+        // 3. Perform Calculations
         $totalSubjects = $grades->count();
         $studentTotal = $grades->sum('total_score');
         $obtainable = $totalSubjects * 100;
         $average = $totalSubjects > 0 ? ($studentTotal / $obtainable) * 100 : 0;
         
-        // Dynamic Class Size
+        // GPA calculation (Scale of 5.0)
+        $gpa = $totalSubjects > 0 ? ($average / 100) * 5 : 0; 
+
+        // 4. Class size and Skills
         $classSize = Student::where('class_level', $student->class_level)->count();
+        
+        $skills = SkillRating::where('admission_number', $student->admission_number)
+            ->with('skill')
+            ->get();
 
-        // 4. Link Dynamic Skills (Affective/Psychomotor) [cite: 11]
-        $skills = SkillRating::where('student_id', $id)->with('skill')->get();
-
+        // 5. Send everything to the view
         return view('results.report-card', compact(
-            'student', 'grades', 'setting', 'totalSubjects', 
-            'studentTotal', 'obtainable', 'average', 'classSize', 'skills'
+            'student', 
+            'grades', 
+            'setting', 
+            'totalSubjects', 
+            'studentTotal', 
+            'obtainable', 
+            'average', 
+            'classSize', 
+            'skills', 
+            'gpa'
         ));
     }
 }
